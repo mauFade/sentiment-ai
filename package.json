@@ -5,6 +5,9 @@
   "repository": "https://github.com/mauFade/sentiment-ai",
   "author": "Mauricio Cardoso <mauricio.cds00@gmail.com>",
   "license": "MIT",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
+  },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",

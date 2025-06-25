@@ -13,7 +13,7 @@ app.use(express.static("public"));
 const analyzer = new natural.SentimentAnalyzer(
   "Portuguese",
   natural.PorterStemmerPt,
-  "negation"
+  "afinn"
 );
 
 const tokenizer = new natural.WordTokenizer();
@@ -114,3 +114,24 @@ function analyzeSentiment(text: string) {
     },
   };
 }
+
+app.use(
+  (
+    err: Error,
+    _: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    console.error("Erro não tratado:", err);
+    res.status(500).json({
+      error: "Erro interno do servidor",
+    });
+  }
+);
+
+// Inicia o servidor
+app.listen(port, () => {
+  console.log(`🚀 Servidor rodando em http://localhost:${port}`);
+  console.log(`📊 API disponível em http://localhost:${port}/api`);
+  console.log(`🎯 Teste a análise em http://localhost:${port}`);
+});
