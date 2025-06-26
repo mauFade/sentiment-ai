@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analisador de Humor com IA</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(10px);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        font-weight: 300;
+      }
+
+      .header p {
+        opacity: 0.9;
+        font-size: 1.1em;
+      }
+
+      .main-content {
+        padding: 40px;
+      }
+
+      .analyzer-section {
+        margin-bottom: 40px;
+      }
+
+      .input-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      textarea {
+        width: 100%;
+        padding: 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 10px;
+        font-size: 16px;
+        font-family: inherit;
+        resize: vertical;
+        transition: all 0.3s ease;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .button-group {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+
+      button {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .result-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        border-left: 5px solid #667eea;
+      }
+
+      .sentiment-badge {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 15px;
+      }
+
+      .sentiment-positive {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .sentiment-negative {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .sentiment-neutral {
+        background: #e2e3e5;
+        color: #383d41;
+      }
+
+      .confidence-bar {
+        background: #e9ecef;
+        border-radius: 10px;
+        height: 20px;
+        margin: 10px 0;
+        overflow: hidden;
+      }
+
+      .confidence-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 10px;
+        transition: width 0.8s ease;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+      }
+
+      .stat-number {
+        font-size: 2em;
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 5px;
+      }
+
+      .stat-label {
+        color: #666;
+        font-size: 0.9em;
+      }
+
+      .history-section {
+        margin-top: 40px;
+      }
+
+      .history-item {
+        background: #f8f9fa;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .examples {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .example-card {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+      }
+
+      .example-card:hover {
+        background: #e9ecef;
+        border-color: #667eea;
+      }
+
+      @media (max-width: 768px) {
+        .button-group {
+          flex-direction: column;
+        }
+
+        .header h1 {
+          font-size: 2em;
+        }
+
+        .main-content {
+          padding: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🤖 Analisador de Humor com IA</h1>
+        <p>
+          Descubra se seu texto é positivo, negativo ou neutro usando
+          inteligência artificial
+        </p>
+      </div>
+
+      <div class="main-content">
+        <!-- Seção de Análise -->
+        <div class="analyzer-section">
+          <h2>✨ Analise seu texto</h2>
+
+          <div class="examples">
+            <div
+              class="example-card"
+              onclick="useExample('Adorei este produto! Super recomendo para todos.')"
+            >
+              <strong>Positivo:</strong> "Adorei este produto! Super recomendo
+              para todos."
+            </div>
+            <div
+              class="example-card"
+              onclick="useExample('Este serviço é péssimo, muito decepcionante.')"
+            >
+              <strong>Negativo:</strong> "Este serviço é péssimo, muito
+              decepcionante."
+            </div>
+            <div
+              class="example-card"
+              onclick="useExample('O produto chegou no prazo esperado.')"
+            >
+              <strong>Neutro:</strong> "O produto chegou no prazo esperado."
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="textInput">Digite ou cole seu texto aqui:</label>
+            <textarea
+              id="textInput"
+              rows="4"
+              placeholder="Ex: 'Adorei o atendimento, foi excelente!' ou 'Produto chegou com defeito, muito chateado.'"
+              maxlength="1000"
+            >
+            </textarea>
+            <small style="color: #666">Máximo 1000 caracteres</small>
+          </div>
+
+          <div class="button-group">
+            <button onclick="analyzeText()">🔍 Analisar Sentimento</button>
+            <button onclick="clearAll()" style="background: #6c757d">
+              🗑️ Limpar Tudo
+            </button>
+          </div>
+
+          <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analisando seu texto...</p>
+          </div>
+
+          <div id="result"></div>
+        </div>
+
+        <!-- Estatísticas -->
+        <div id="statsSection" style="display: none">
+          <h2>📊 Estatísticas</h2>
+          <div class="stats-grid" id="statsGrid"></div>
+        </div>
+
+        <!-- Histórico -->
+        <div class="history-section" id="historySection" style="display: none">
+          <h2>📝 Histórico de Análises</h2>
+          <div id="historyList"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let analysisCount = 0;
+
+      function useExample(text) {
+        document.getElementById("textInput").value = text;
+      }
+
+      async function analyzeText() {
+        const textInput = document.getElementById("textInput");
+        const text = textInput.value.trim();
+
+        if (!text) {
+          alert("Por favor, digite um texto para analisar!");
+          return;
+        }
+
+        const loading = document.getElementById("loading");
+        const resultDiv = document.getElementById("result");
+
+        loading.style.display = "block";
+        resultDiv.innerHTML = "";
+
+        try {
+          const response = await fetch("http://localhost:3000/api/analyze", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text }),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            displayResult(data.data, text);
+            analysisCount++;
+            loadStats();
+            loadHistory();
+          } else {
+            throw new Error(data.error || "Erro na análise");
+          }
+        } catch (error) {
+          console.error("Erro:", error);
+          resultDiv.innerHTML = `
+                    <div class="result-card" style="border-left-color: #dc3545;">
+                        <h3>❌ Erro na análise</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+        } finally {
+          loading.style.display = "none";
+        }
+      }
+
+      function displayResult(result, originalText) {
+        const resultDiv = document.getElementById("result");
+
+        const sentimentClass = `sentiment-${result.sentiment}`;
+        const emoji =
+          result.sentiment === "positivo"
+            ? "😊"
+            : result.sentiment === "negativo"
+            ? "😞"
+            : "😐";
+
+        resultDiv.innerHTML = `
+                <div class="result-card">
+                    <h3>${emoji} Resultado da Análise</h3>
+                    
+                    <div class="sentiment-badge ${sentimentClass}">
+                        ${result.sentiment.toUpperCase()}
+                    </div>
+                    
+                    <p><strong>Texto analisado:</strong> "${originalText.substring(
+                      0,
+                      100
+                    )}${originalText.length > 100 ? "..." : ""}"</p>
+                    
+                    <p><strong>Confiança:</strong> ${result.confidence}%</p>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${
+                          result.confidence
+                        }%"></div>
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <p><strong>📊 Detalhes da Análise:</strong></p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>Palavras analisadas: ${result.wordCount}</li>
+                            <li>Palavras positivas encontradas: ${
+                              result.positiveWords
+                            }</li>
+                            <li>Palavras negativas encontradas: ${
+                              result.negativeWords
+                            }</li>
+                            <li>Score: ${result.score}</li>
+                        </ul>
+                    </div>
+
+                    ${
+                      result.analysis.detectedPositive.length > 0
+                        ? `
+                        <p style="margin-top: 10px;"><strong>✅ Palavras positivas:</strong> ${result.analysis.detectedPositive.join(
+                          ", "
+                        )}</p>
+                    `
+                        : ""
+                    }
+                    
+                    ${
+                      result.analysis.detectedNegative.length > 0
+                        ? `
+                        <p style="margin-top: 10px;"><strong>❌ Palavras negativas:</strong> ${result.analysis.detectedNegative.join(
+                          ", "
+                        )}</p>
+                    `
+                        : ""
+                    }
+                </div>
+            `;
+      }
+
+      async function loadStats() {
+        try {
+          const response = await fetch("http://localhost:3000/api/stats");
+          const data = await response.json();
+
+          if (data.success) {
+            const statsSection = document.getElementById("statsSection");
+            const statsGrid = document.getElementById("statsGrid");
+
+            statsGrid.innerHTML = `
+                        <div class="stat-card">
+                            <div class="stat-number">${data.data.totalAnalyses}</div>
+                            <div class="stat-label">Total de Análises</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.data.sentimentBreakdown.positive}</div>
+                            <div class="stat-label">Positivos</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.data.sentimentBreakdown.negative}</div>
+                            <div class="stat-label">Negativos</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.data.sentimentBreakdown.neutral}</div>
+                            <div class="stat-label">Neutros</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${data.data.averageConfidence}%</div>
+                            <div class="stat-label">Confiança Média</div>
+                        </div>
+                    `;
+
+            statsSection.style.display = "block";
+          }
+        } catch (error) {
+          console.error("Erro ao carregar estatísticas:", error);
+        }
+      }
+
+      async function loadHistory() {
+        try {
+          const response = await fetch("http://localhost:3000/api/history");
+          const data = await response.json();
+
+          if (data.success && data.data.length > 0) {
+            const historySection = document.getElementById("historySection");
+            const historyList = document.getElementById("historyList");
+
+            historyList.innerHTML = data.data
+              .slice(0, 5)
+              .map(
+                (item) => `
+                        <div class="history-item">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>"${item.text}"</strong>
+                                    <div class="sentiment-badge sentiment-${
+                                      item.sentiment
+                                    }" style="margin: 5px 0;">
+                                        ${item.sentiment} (${item.confidence}%)
+                                    </div>
+                                </div>
+                                <small style="color: #666;">
+                                    ${new Date(item.timestamp).toLocaleString(
+                                      "pt-BR"
+                                    )}
+                                </small>
+                            </div>
+                        </div>
+                    `
+              )
+              .join("");
+
+            historySection.style.display = "block";
+          }
+        } catch (error) {
+          console.error("Erro ao carregar histórico:", error);
+        }
+      }
+
+      function clearAll() {
+        document.getElementById("textInput").value = "";
+        document.getElementById("result").innerHTML = "";
+        document.getElementById("statsSection").style.display = "none";
+        document.getElementById("historySection").style.display = "none";
+      }
+
+      // Carrega dados iniciais
+      document.addEventListener("DOMContentLoaded", () => {
+        loadStats();
+        loadHistory();
+      });
+
+      // Permite análise com Enter
+      document.getElementById("textInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && e.ctrlKey) {
+          analyzeText();
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -120,7 +120,7 @@ let analysisHistory: AnalysisHistory[] = [];
 
 // Rotas da API
 routes.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/index.html"));
+  res.sendFile(path.join(__dirname, "../public/frontend.html"));
 });
 
 // Rota principal para análise de sentimento
@@ -180,10 +180,6 @@ routes.get("/api/history", (req, res) => {
       timestamp: item.timestamp,
     })),
   });
-});
-
-routes.post("/", (req, res) => {
-  res.send("Got a POST request");
 });
 
 // Rota para análise em lote
