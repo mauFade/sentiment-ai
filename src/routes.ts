@@ -13,8 +13,8 @@ interface AnalysisHistory {
 
 const analyzer = new natural.SentimentAnalyzer(
   "English",
-  natural.PorterStemmerPt,
-  "negations"
+  natural.PorterStemmer,
+  "afinn"
 );
 
 const tokenizer = new natural.WordTokenizer();
