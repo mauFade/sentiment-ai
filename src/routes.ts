@@ -12,14 +12,85 @@ interface AnalysisHistory {
 }
 
 const analyzer = new natural.SentimentAnalyzer(
-  "Portuguese",
+  "English",
   natural.PorterStemmerPt,
-  "afinn"
+  "negations"
 );
 
 const tokenizer = new natural.WordTokenizer();
 
-const positiveWords = [
+const translationMap: { [key: string]: string } = {
+  bom: "good",
+  ótimo: "great",
+  excelente: "excellent",
+  fantástico: "fantastic",
+  maravilhoso: "wonderful",
+  perfeito: "perfect",
+  incrível: "incredible",
+  adorei: "loved",
+  amei: "loved",
+  feliz: "happy",
+  alegre: "cheerful",
+  satisfeito: "satisfied",
+  recomendo: "recommend",
+  aprovado: "approved",
+  sucesso: "success",
+  top: "top",
+  show: "awesome",
+  legal: "cool",
+  gostei: "liked",
+  curtir: "enjoy",
+  parabéns: "congratulations",
+  bonito: "beautiful",
+  lindo: "beautiful",
+  melhor: "better",
+  qualidade: "quality",
+  rápido: "fast",
+  eficiente: "efficient",
+  útil: "useful",
+  obrigado: "thanks",
+  ruim: "bad",
+  péssimo: "terrible",
+  horrível: "horrible",
+  terrível: "awful",
+  odeio: "hate",
+  detesto: "hate",
+  triste: "sad",
+  chateado: "upset",
+  decepcionado: "disappointed",
+  frustrado: "frustrated",
+  irritado: "angry",
+  problema: "problem",
+  erro: "error",
+  falha: "failure",
+  defeito: "defect",
+  lixo: "garbage",
+  pior: "worse",
+  difícil: "difficult",
+  complicado: "complicated",
+  caro: "expensive",
+  demorado: "slow",
+  chato: "boring",
+  feio: "ugly",
+  produto: "product",
+  serviço: "service",
+  compra: "purchase",
+  entrega: "delivery",
+  atendimento: "service",
+  preço: "price",
+  valor: "value",
+  tempo: "time",
+  empresa: "company",
+  não: "not",
+  nunca: "never",
+  nada: "nothing",
+  nem: "neither",
+  jamais: "never",
+  nenhum: "none",
+  nenhuma: "none",
+};
+
+const positiveWordsPortuguese = [
   "bom",
   "ótimo",
   "excelente",
@@ -40,7 +111,7 @@ const positiveWords = [
   "legal",
 ];
 
-const negativeWords = [
+const negativeWordsPortuguese = [
   "ruim",
   "péssimo",
   "horrível",
@@ -60,58 +131,95 @@ const negativeWords = [
   "pior",
 ];
 
+function translateToEnglish(text: string): string {
+  const words = text.toLowerCase().split(/\s+/);
+
+  const translatedWords = words.map((word) => {
+    // Remove pontuação para buscar a palavra
+    const cleanWord = word.replace(/[^\w]/g, "");
+    return translationMap[cleanWord] || word;
+  });
+
+  return translatedWords.join(" ");
+}
+
 function analyzeSentiment(text: string) {
   const normalizedText = text
     .toLowerCase()
-    .replace(/[^\w\s]/g, " ")
+    .replace(/[^\w\s\u00C0-\u017F]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-  const tokens = tokenizer.tokenize(normalizedText) || [];
+  const tokensPortuguese = tokenizer.tokenize(normalizedText) || [];
 
-  let positiveCount = 0;
-  let negativeCount = 0;
-  let totalWords = tokens.length;
+  const translatedText = translateToEnglish(normalizedText);
+  const tokensEnglish = tokenizer.tokenize(translatedText) || [];
 
-  tokens.forEach((token) => {
-    if (positiveWords.includes(token)) {
-      positiveCount++;
+  let positiveCountPt = 0;
+  let negativeCountPt = 0;
+
+  tokensPortuguese.forEach((token) => {
+    if (positiveWordsPortuguese.includes(token)) {
+      positiveCountPt++;
     }
-    if (negativeWords.includes(token)) {
-      negativeCount++;
+    if (negativeWordsPortuguese.includes(token)) {
+      negativeCountPt++;
     }
   });
 
-  let score = 0;
-  if (totalWords > 0) {
-    score = (positiveCount - negativeCount) / totalWords;
+  let naturalScore = 0;
+  if (tokensEnglish.length > 0) {
+    try {
+      const stems = tokensEnglish.map((token) =>
+        natural.PorterStemmer.stem(token)
+      );
+      naturalScore = analyzer.getSentiment(stems);
+    } catch (error) {
+      console.warn("Erro na análise Natural:", error);
+    }
   }
+
+  const localScore =
+    tokensPortuguese.length > 0
+      ? (positiveCountPt - negativeCountPt) / tokensPortuguese.length
+      : 0;
+
+  const combinedScore = localScore * 0.6 + naturalScore * 0.4;
 
   let sentiment: string;
   let confidence: number;
 
-  if (score > 0.1) {
+  if (combinedScore > 0.15) {
     sentiment = "positivo";
-    confidence = Math.min(score * 5, 1);
-  } else if (score < -0.1) {
+    confidence = Math.min(Math.abs(combinedScore) * 3, 1);
+  } else if (combinedScore < -0.15) {
     sentiment = "negativo";
-    confidence = Math.min(Math.abs(score) * 5, 1);
+    confidence = Math.min(Math.abs(combinedScore) * 3, 1);
   } else {
     sentiment = "neutro";
-    confidence = 0.5;
+    confidence = 0.4 + Math.abs(combinedScore) * 0.6;
   }
 
   return {
     sentiment,
     confidence: Math.round(confidence * 100),
-    score: Math.round(score * 100) / 100,
-    wordCount: totalWords,
-    positiveWords: positiveCount,
-    negativeWords: negativeCount,
+    score: Math.round(combinedScore * 100) / 100,
+    wordCount: tokensPortuguese.length,
+    positiveWords: positiveCountPt,
+    negativeWords: negativeCountPt,
     analysis: {
-      tokens: tokens.slice(0, 10),
-      detectedPositive: tokens.filter((t) => positiveWords.includes(t)),
-      detectedNegative: tokens.filter((t) => negativeWords.includes(t)),
+      originalText: normalizedText,
+      translatedText: translatedText,
+      tokensPortuguese: tokensPortuguese.slice(0, 10),
+      tokensEnglish: tokensEnglish.slice(0, 10),
+      localScore: Math.round(localScore * 100) / 100,
+      naturalScore: Math.round(naturalScore * 100) / 100,
+      detectedPositive: tokensPortuguese.filter((t) =>
+        positiveWordsPortuguese.includes(t)
+      ),
+      detectedNegative: tokensPortuguese.filter((t) =>
+        negativeWordsPortuguese.includes(t)
+      ),
     },
   };
 }
@@ -123,7 +231,6 @@ routes.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/frontend.html"));
 });
 
-// Rota principal para análise de sentimento
 routes.post("/api/analyze", (req, res) => {
   try {
     const { text } = req.body;
@@ -168,7 +275,6 @@ routes.post("/api/analyze", (req, res) => {
   }
 });
 
-// Rota para buscar histórico
 routes.get("/api/history", (req, res) => {
   res.json({
     success: true,
@@ -182,7 +288,6 @@ routes.get("/api/history", (req, res) => {
   });
 });
 
-// Rota para análise em lote
 routes.post("/api/batch-analyze", (req, res) => {
   try {
     const { texts } = req.body;
@@ -214,7 +319,7 @@ routes.post("/api/batch-analyze", (req, res) => {
       };
     });
 
-    res.send({
+    res.json({
       success: true,
       data: results,
     });
@@ -226,7 +331,6 @@ routes.post("/api/batch-analyze", (req, res) => {
   }
 });
 
-// Rota para estatísticas
 routes.get("/api/stats", (req, res) => {
   const stats = {
     totalAnalyses: analysisHistory.length,
