@@ -111,7 +111,3 @@ curl -X POST http://localhost:3000/api/analyze \
 - `src/index.ts` — Ponto de entrada do servidor Express.
 - `src/routes.ts` — Lógica de análise, rotas da API e histórico.
 - `public/frontend.html` — Interface web para uso manual.
-
-## 📄 Licença
-
-MIT. Veja o arquivo LICENSE para mais detalhes.
